@@ -1,13 +1,15 @@
 # ForgeMyCV
 
-**ForgeMyCV** is a small Flask web app that turns your details into a polished, ATS-friendly CV using OpenAI.
+**ForgeMyCV** is a small Flask web app that turns your details into a polished, ATS-friendly CV and, optionally, a matching cover letter using OpenAI.
 
 ## Features
 
 - Structured form: contact details, target role, experience, education, skills and extras
-- Optional job description to tailor the CV to a specific advert
-- Generates a clean, formatted CV without making up any facts
-- Download as PDF (via your browser's print dialog) or copy as Markdown
+- Optional job description to tailor your documents to a specific advert
+- Optional cover letter: add the company, hiring manager and why you want the role
+- Generates a clean, formatted CV (and cover letter) without making up any facts
+- CV and cover letter are generated in parallel and shown in tabs
+- Download either as a PDF (via your browser's print dialog) or copy as Markdown
 - Validates input and shows friendly errors without losing what you typed
 
 ## Setup

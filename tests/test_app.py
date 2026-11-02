@@ -38,7 +38,7 @@ def test_form_renders(client):
     resp = client.get("/")
     assert resp.status_code == 200
     assert b'name="full_name"' in resp.data
-    assert b"cover letter" not in resp.data.lower()
+    assert b'name="cover_letter"' in resp.data
 
 
 def test_missing_required_fields_rerenders_form(client):
@@ -72,6 +72,8 @@ def test_generates_cv(client, monkeypatch):
     assert b"```" not in resp.data
     prompt = calls[0]["messages"][1]["content"]
     assert "Ada Lovelace" in prompt and "Job description" not in prompt
+    assert len(calls) == 1  # no cover letter unless requested
+    assert b'role="tablist"' not in resp.data
 
 
 def test_model_html_is_escaped(client, monkeypatch):
@@ -88,3 +90,39 @@ def test_api_error_is_handled(client, monkeypatch):
     assert resp.status_code == 502
     assert b"try again" in resp.data
     assert b'value="Ada Lovelace"' in resp.data
+
+
+def test_cover_letter_requires_company(client):
+    resp = client.post("/generate", data={**VALID, "cover_letter": "on"})
+    assert resp.status_code == 400
+    assert b"Company name is required for a cover letter." in resp.data
+    assert b'id="cover_letter" checked' in resp.data  # choice is preserved
+
+
+def test_generates_cv_and_cover_letter(client, monkeypatch):
+    calls = []
+
+    def create(**kwargs):
+        calls.append(kwargs)
+        system = kwargs["messages"][0]["content"]
+        text = "Dear Hiring Manager," if "cover letter" in system else "# CV body"
+        message = SimpleNamespace(content=text)
+        return SimpleNamespace(choices=[SimpleNamespace(message=message)])
+
+    fake = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    monkeypatch.setattr(cv_app, "get_client", lambda: fake)
+    form = {**VALID, "cover_letter": "on", "company": "Analytical Engines Ltd",
+            "motivation": "I love engines."}
+    resp = client.post("/generate", data=form)
+
+    assert resp.status_code == 200
+    assert len(calls) == 2
+    assert b"<h1>CV body</h1>" in resp.data
+    assert b"Dear Hiring Manager," in resp.data
+    assert b'role="tablist"' in resp.data
+
+    prompts = {c["messages"][0]["content"]: c["messages"][1]["content"] for c in calls}
+    cv_prompt = prompts[cv_app.CV_PROMPT]
+    letter_prompt = prompts[cv_app.COVER_LETTER_PROMPT]
+    assert "Analytical Engines Ltd" in letter_prompt and "I love engines." in letter_prompt
+    assert "Analytical Engines Ltd" not in cv_prompt and "I love engines." not in cv_prompt

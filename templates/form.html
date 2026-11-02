@@ -51,8 +51,22 @@
 
     <fieldset>
         <legend>Tailor to a job <span class="hint">(optional)</span></legend>
-        {{ field("job_description", "Job description", hint="- paste the advert to tailor your CV to it",
+        {{ field("job_description", "Job description", hint="- paste the advert to tailor your documents to it",
                  rows=6) }}
+    </fieldset>
+
+    <fieldset>
+        <legend>Cover letter</legend>
+        <label class="check">
+            <input type="checkbox" name="cover_letter" id="cover_letter" {% if want_letter %}checked{% endif %}>
+            Also write a matching cover letter
+        </label>
+        <div class="grid" id="letter-fields">
+            {{ field("company", "Company name", hint="(required for a cover letter)") }}
+            {{ field("hiring_manager", "Hiring manager", hint="(if known)") }}
+            {{ field("motivation", "Why you want this role", hint="(optional - makes the letter more personal)",
+                     rows=3, cls="full") }}
+        </div>
     </fieldset>
 
     <button class="btn" type="submit" id="submit-btn">Generate CV</button>
@@ -61,10 +75,24 @@
 
 {% block scripts %}
 <script>
-    document.getElementById("cv-form").addEventListener("submit", function () {
-        var btn = document.getElementById("submit-btn");
+    var form = document.getElementById("cv-form");
+    var btn = document.getElementById("submit-btn");
+    var letterBox = document.getElementById("cover_letter");
+    var letterFields = document.getElementById("letter-fields");
+    var company = document.getElementById("company");
+
+    function syncLetter() {
+        var on = letterBox.checked;
+        letterFields.hidden = !on;
+        company.required = on;
+        btn.textContent = on ? "Generate CV & cover letter" : "Generate CV";
+    }
+    letterBox.addEventListener("change", syncLetter);
+    syncLetter();
+
+    form.addEventListener("submit", function () {
         btn.disabled = true;
-        btn.textContent = "Generating your CV...";
+        btn.textContent = letterBox.checked ? "Writing your CV & cover letter..." : "Generating your CV...";
     });
 </script>
 {% endblock %}
