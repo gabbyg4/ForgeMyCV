@@ -7,7 +7,7 @@
     <meta name="description" content="{% block description %}Turn your experience into a polished, ATS-friendly CV and a matching cover letter in minutes.{% endblock %}">
     <meta name="theme-color" content="#1f4e79">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f4e79'/%3E%3Cpath d='M10 8h12v4h-8v3h7v4h-7v5h-4z' fill='%23fff'/%3E%3Ccircle cx='24' cy='22' r='2.5' fill='%23f59e0b'/%3E%3C/svg%3E">
-    <style>
+    <style nonce="{{ csp_nonce() }}">
         :root {
             --accent: #1f4e79; --accent-dark: #163a5c; --accent-soft: #e8f0f8;
             --spark: #f59e0b; --text: #1f2328; --muted: #57606a; --border: #d0d7de;

@@ -81,7 +81,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     var fullName = {{ full_name | tojson }};
     var active = document.querySelector(".doc:not([hidden])");

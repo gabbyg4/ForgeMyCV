@@ -1,11 +1,18 @@
 {% extends "base.html" %}
 {% block title %}{{ title }} - ForgeMyCV{% endblock %}
 
+{% block styles %}
+.error-card { text-align: center; padding: 48px 24px; }
+.error-card h1 { margin-top: 0; }
+.error-card p { color: var(--muted); }
+.error-card .actions { justify-content: center; margin: 24px 0 0; }
+{% endblock %}
+
 {% block content %}
-<div class="card" style="text-align: center; padding: 48px 24px;">
-    <h1 style="margin-top: 0;">{{ title }}</h1>
-    <p style="color: var(--muted);">{{ message }}</p>
-    <div class="actions" style="justify-content: center; margin: 24px 0 0;">
+<div class="card error-card">
+    <h1>{{ title }}</h1>
+    <p>{{ message }}</p>
+    <div class="actions">
         <a class="btn" href="{{ url_for('form') }}">Build my CV</a>
         <a class="btn secondary" href="{{ url_for('index') }}">Home</a>
     </div>

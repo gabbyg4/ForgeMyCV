@@ -105,7 +105,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     var form = document.getElementById("cv-form");
     var btn = document.getElementById("submit-btn");
@@ -126,8 +126,15 @@
     }
 
     // Browser storage can be unavailable (private mode, blocked cookies) - never let that break the form.
+    // Drafts hold personal details, so they expire rather than linger on shared computers.
+    var DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
     function readDraft() {
-        try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch (e) { return null; }
+        try {
+            var saved = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+            if (saved && saved.fields && Date.now() - saved.savedAt < DRAFT_MAX_AGE_MS) return saved.fields;
+            localStorage.removeItem(DRAFT_KEY);
+        } catch (e) {}
+        return null;
     }
     function saveDraft() {
         var draft = {};
@@ -135,7 +142,7 @@
             if (!el.name) return;
             draft[el.name] = el.type === "checkbox" ? el.checked : el.value;
         });
-        try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) {}
+        try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: Date.now(), fields: draft })); } catch (e) {}
     }
     function restoreDraft() {
         var draft = readDraft();
@@ -143,9 +150,12 @@
         var restored = false;
         Object.keys(draft).forEach(function (name) {
             var el = form.elements[name];
-            if (!el || el.length) return;
-            if (el.type === "checkbox") { el.checked = !!draft[name]; }
-            else if (draft[name]) { el.value = draft[name]; restored = true; }
+            if (!el || el.length || typeof draft[name] === "object") return;
+            if (el.type === "checkbox") { el.checked = draft[name] === true; }
+            else if (typeof draft[name] === "string" && draft[name]) {
+                el.value = draft[name].slice(0, el.maxLength > 0 ? el.maxLength : undefined);
+                restored = true;
+            }
         });
         if (restored) document.getElementById("draft-note").hidden = false;
     }

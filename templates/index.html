@@ -38,6 +38,7 @@
             padding-bottom: 2px; margin: 14px 0 8px; }
 .line { height: 7px; border-radius: 4px; background: #e6eaef; margin: 6px 0; }
 .line.short { width: 55%; } .line.mid { width: 78%; }
+.line.gap-before { margin-top: 13px; } .line.gap-after { margin-bottom: 18px; }
 .pills { display: flex; flex-wrap: wrap; gap: 5px; }
 .pills span { font-family: system-ui, sans-serif; font-size: .62rem; padding: 2px 8px; border-radius: 999px;
               background: var(--accent-soft); color: var(--accent); }
@@ -116,9 +117,9 @@
     <div class="preview" aria-hidden="true">
         <div class="sheet letter">
             <div class="line short"></div>
-            <div class="line mid" style="margin-bottom: 18px"></div>
+            <div class="line mid gap-after"></div>
             <div class="line"></div><div class="line"></div><div class="line mid"></div>
-            <div class="line" style="margin-top: 14px"></div><div class="line"></div><div class="line short"></div>
+            <div class="line gap-before"></div><div class="line"></div><div class="line short"></div>
         </div>
         <div class="sheet cv">
             <p class="name">Alex Morgan</p>
@@ -129,7 +130,7 @@
             <div class="pills"><span>Product strategy</span><span>SQL</span><span>User research</span><span>Figma</span></div>
             <div class="h">Work experience</div>
             <div class="line short"></div><div class="line"></div><div class="line mid"></div>
-            <div class="line short" style="margin-top: 12px"></div><div class="line"></div>
+            <div class="line short gap-before"></div><div class="line"></div>
         </div>
         <div class="badge"><i>&#10003;</i>Tailored to the job advert</div>
     </div>
@@ -207,7 +208,7 @@
         <details>
             <summary>What happens to my information?</summary>
             <p>Your details are sent to OpenAI to write your documents and are not stored by ForgeMyCV.
-               A draft of the form is saved in your own browser so you don't lose your work - use
+               A draft of the form is saved in your own browser for up to 7 days so you don't lose your work - use
                "Clear form" in the builder to remove it.</p>
         </details>
         <details>
