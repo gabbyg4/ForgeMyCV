@@ -1,12 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ full_name }} - CV{% endblock %}
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Your AI-Generated CV</title>
-</head>
-<body>
-    <h1>Your AI-Generated Resume & Cover Letter</h1>
-    <pre>{{ output }}</pre>
-    <a href="/">Generate Another</a>
-</body>
-</html>
+{% block styles %}
+.cv { font-family: Georgia, "Times New Roman", serif; }
+.cv h1 { margin: 0 0 4px; color: var(--accent); font-size: 2rem; }
+.cv h1 + p { margin-top: 0; color: var(--muted); }
+.cv h2 { color: var(--accent); font-size: 1.15rem; text-transform: uppercase; letter-spacing: .04em;
+         border-bottom: 2px solid var(--accent); padding-bottom: 2px; margin: 24px 0 8px; }
+.cv h3 { font-size: 1rem; margin: 14px 0 4px; }
+.cv ul { margin: 4px 0; padding-left: 20px; }
+.cv a { color: var(--accent); }
+@media print {
+    @page { margin: 15mm; }
+    body { background: #fff; }
+    main { max-width: none; padding: 0; }
+    .no-print { display: none !important; }
+    .card { border: 0; padding: 0; }
+    .cv h2, .cv h3 { break-after: avoid; }
+    .cv li { break-inside: avoid; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="actions no-print">
+    <button class="btn" type="button" onclick="window.print()">Download PDF</button>
+    <button class="btn secondary" type="button" id="copy-btn">Copy as Markdown</button>
+    <button class="btn secondary" type="button" onclick="history.back()">Edit details</button>
+    <a class="btn secondary" href="{{ url_for('form') }}">Start over</a>
+</div>
+
+<article class="card cv">
+    {{ cv_html }}
+</article>
+
+<textarea id="cv-markdown" hidden>{{ cv_markdown }}</textarea>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById("copy-btn").addEventListener("click", function () {
+        var btn = this;
+        var text = document.getElementById("cv-markdown").value;
+        navigator.clipboard.writeText(text).then(function () {
+            btn.textContent = "Copied!";
+            setTimeout(function () { btn.textContent = "Copy as Markdown"; }, 2000);
+        });
+    });
+</script>
+{% endblock %}

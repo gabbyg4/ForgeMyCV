@@ -1,18 +1,70 @@
+{% extends "base.html" %}
+{% block title %}ForgeMyCV - Build your CV{% endblock %}
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>ForgeMyCV - Generate Your CV</title>
-</head>
-<body>
-    <h1>ForgeMyCV</h1>
-    <form action="/generate" method="post">
-        <label>Full Name:</label><br><input type="text" name="fullName"><br>
-        <label>Job Title:</label><br><input type="text" name="jobTitle"><br>
-        <label>Experience Summary:</label><br><textarea name="experience"></textarea><br>
-        <label>Skills (comma-separated):</label><br><input type="text" name="skills"><br>
-        <label>Job Description:</label><br><textarea name="jobDescription"></textarea><br>
-        <input type="submit" value="Generate CV & Cover Letter">
-    </form>
-</body>
-</html>
+{% macro field(name, label, required=false, type="text", hint="", rows=0, cls="") -%}
+<div class="{{ cls }}">
+    <label for="{{ name }}">{{ label }}{% if required %} <span class="req">*</span>{% endif %}
+        {% if hint %}<span class="hint">{{ hint }}</span>{% endif %}</label>
+    {% if rows %}
+    <textarea id="{{ name }}" name="{{ name }}" rows="{{ rows }}" maxlength="{{ limits[name] }}"
+              {% if required %}required{% endif %}>{{ data.get(name, "") }}</textarea>
+    {% else %}
+    <input id="{{ name }}" name="{{ name }}" type="{{ type }}" maxlength="{{ limits[name] }}"
+           value="{{ data.get(name, '') }}" {% if required %}required{% endif %}>
+    {% endif %}
+</div>
+{%- endmacro %}
+
+{% block content %}
+{% if errors %}
+<div class="errors" role="alert">
+    <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<form class="card" action="{{ url_for('generate') }}" method="post" id="cv-form">
+    <fieldset>
+        <legend>Personal details</legend>
+        <div class="grid">
+            {{ field("full_name", "Full name", true) }}
+            {{ field("target_role", "Target job title", true) }}
+            {{ field("email", "Email", type="email") }}
+            {{ field("phone", "Phone", type="tel") }}
+            {{ field("location", "Location", hint="(e.g. London, UK)") }}
+            {{ field("links", "Links", hint="(LinkedIn, portfolio, GitHub)") }}
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Your background</legend>
+        <div class="grid">
+            {{ field("summary", "Professional summary", hint="(optional - we'll write one if blank)",
+                     rows=3, cls="full") }}
+            {{ field("experience", "Work experience", true,
+                     hint="- one role per paragraph: title, company, dates, what you did and achieved",
+                     rows=8, cls="full") }}
+            {{ field("education", "Education", hint="(degree, institution, year)", rows=3, cls="full") }}
+            {{ field("skills", "Skills", true, hint="(comma-separated)", rows=2, cls="full") }}
+            {{ field("extras", "Certifications, languages, projects", rows=3, cls="full") }}
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Tailor to a job <span class="hint">(optional)</span></legend>
+        {{ field("job_description", "Job description", hint="- paste the advert to tailor your CV to it",
+                 rows=6) }}
+    </fieldset>
+
+    <button class="btn" type="submit" id="submit-btn">Generate CV</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById("cv-form").addEventListener("submit", function () {
+        var btn = document.getElementById("submit-btn");
+        btn.disabled = true;
+        btn.textContent = "Generating your CV...";
+    });
+</script>
+{% endblock %}

@@ -1,40 +1,35 @@
-
 # ForgeMyCV
 
-**ForgeMyCV** is a simple Flask-based web app that uses OpenAI to generate professional resumes and cover letters based on user input.
+**ForgeMyCV** is a small Flask web app that turns your details into a polished, ATS-friendly CV using OpenAI.
 
 ## Features
 
-- HTML form to collect job details
-- GPT-3.5-turbo generates CV and cover letter
-- Display result on screen
+- Structured form: contact details, target role, experience, education, skills and extras
+- Optional job description to tailor the CV to a specific advert
+- Generates a clean, formatted CV without making up any facts
+- Download as PDF (via your browser's print dialog) or copy as Markdown
+- Validates input and shows friendly errors without losing what you typed
 
-## Setup Instructions
-
-### 1. Clone the repository
+## Setup
 
 ```bash
-git clone https://github.com/your-username/ForgeMyCV.git
+git clone https://github.com/gabbyg4/ForgeMyCV.git
 cd ForgeMyCV
-```
-
-### 2. Create a virtual environment and install dependencies
-
-```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+cp .env.example .env      # then add your OpenAI API key
 ```
 
-### 3. Set up environment variables
+`.env` settings:
 
-Create a `.env` file and add your OpenAI API key:
+| Variable         | Required | Description                                   |
+|------------------|----------|-----------------------------------------------|
+| `OPENAI_API_KEY` | Yes      | Your OpenAI API key                           |
+| `OPENAI_MODEL`   | No       | Model to use (default `gpt-4o-mini`)          |
+| `FLASK_DEBUG`    | No       | Set to `1` to enable debug mode locally       |
 
-```bash
-OPENAI_API_KEY=your-api-key-here
-```
-
-### 4. Run the app
+## Run
 
 ```bash
 python app.py
@@ -42,7 +37,12 @@ python app.py
 
 Visit `http://localhost:5000` in your browser.
 
----
+## Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
 
 ## License
 
