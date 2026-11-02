@@ -1,73 +1,109 @@
 {% extends "base.html" %}
 {% block title %}{{ full_name }} - {{ documents | map(attribute="title") | join(" & ") }}{% endblock %}
+{% block nav_action %}{% endblock %}
 
 {% block styles %}
-.doc { font-family: Georgia, "Times New Roman", serif; }
+.result-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+               gap: 12px; margin-bottom: 16px; }
+.result-head h1 { margin: 0; font-size: 1.5rem; }
+.result-head p { margin: 2px 0 0; color: var(--muted); font-size: .95rem; }
+.doc { font-family: Georgia, "Times New Roman", serif; box-shadow: var(--shadow); padding: 40px 48px; }
 .doc h1 { margin: 0 0 4px; color: var(--accent); font-size: 2rem; }
-.doc h1 + p { margin-top: 0; color: var(--muted); }
+.doc h1 + p { margin-top: 0; color: var(--muted); overflow-wrap: anywhere; }
 .doc h2 { color: var(--accent); font-size: 1.15rem; text-transform: uppercase; letter-spacing: .04em;
           border-bottom: 2px solid var(--accent); padding-bottom: 2px; margin: 24px 0 8px; }
 .doc h3 { font-size: 1rem; margin: 14px 0 4px; }
 .doc ul { margin: 4px 0; padding-left: 20px; }
-.doc a { color: var(--accent); }
 #doc-cover_letter h1 + p { border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
 #doc-cover_letter p { margin: 0 0 14px; }
-.tabs { display: flex; gap: 4px; margin-bottom: -1px; }
+.tabs { display: flex; gap: 4px; margin-bottom: -1px; position: relative; }
 .tab { padding: 8px 16px; font: inherit; font-weight: 600; border: 1px solid var(--border);
        border-radius: 6px 6px 0 0; background: var(--bg); color: var(--muted); cursor: pointer; }
-.tab[aria-selected="true"] { background: #fff; color: var(--accent); border-bottom-color: #fff; }
+.tab[aria-selected="true"] { background: var(--surface); color: var(--accent); border-bottom-color: var(--surface); }
 .tabs + .card { border-top-left-radius: 0; }
+.notice { font-size: .875rem; color: var(--muted); margin: 16px 0 0; }
+@media (max-width: 600px) { .doc { padding: 24px 20px; } }
 @media print {
     @page { margin: 15mm; }
-    body { background: #fff; }
+    body { background: #fff; display: block; }
     main { max-width: none; padding: 0; }
     .no-print { display: none !important; }
-    .card { border: 0; padding: 0; }
+    .card { border: 0; padding: 0; box-shadow: none; }
     .doc h2, .doc h3 { break-after: avoid; }
     .doc li { break-inside: avoid; }
 }
 {% endblock %}
 
 {% block content %}
+{# The details used to write these documents, posted back to edit or regenerate them. #}
+<form id="details" method="post" hidden>
+    {% for name, value in data.items() if value %}
+    <input type="hidden" name="{{ name }}" value="{{ value }}">
+    {% endfor %}
+    {% if want_letter %}<input type="hidden" name="cover_letter" value="on">{% endif %}
+</form>
+
+<div class="result-head no-print">
+    <div>
+        <h1>{{ "Your CV and cover letter are ready" if documents | length > 1 else "Your CV is ready" }}</h1>
+        <p>Read it through, then download it as a PDF or copy it into your own editor.</p>
+    </div>
+</div>
+
 <div class="actions no-print">
     <button class="btn" type="button" id="print-btn">Download PDF</button>
     <button class="btn secondary" type="button" id="copy-btn">Copy as Markdown</button>
-    <button class="btn secondary" type="button" onclick="history.back()">Edit details</button>
-    <a class="btn secondary" href="{{ url_for('form') }}">Start over</a>
+    <button class="btn secondary" type="submit" form="details" formaction="{{ url_for('edit') }}">Edit details</button>
+    <button class="btn secondary" type="submit" form="details" formaction="{{ url_for('generate') }}"
+            id="regen-btn">Try another version</button>
 </div>
 
 {% if documents | length > 1 %}
 <div class="tabs no-print" role="tablist">
     {% for doc in documents %}
-    <button class="tab" type="button" role="tab" data-doc="{{ doc.id }}" aria-controls="doc-{{ doc.id }}"
-            aria-selected="{{ 'true' if loop.first else 'false' }}">{{ doc.title }}</button>
+    <button class="tab" type="button" role="tab" id="tab-{{ doc.id }}" data-doc="{{ doc.id }}"
+            aria-controls="doc-{{ doc.id }}" aria-selected="{{ 'true' if loop.first else 'false' }}"
+            tabindex="{{ 0 if loop.first else -1 }}">{{ doc.title }}</button>
     {% endfor %}
 </div>
 {% endif %}
 
 {% for doc in documents %}
-<article class="card doc" id="doc-{{ doc.id }}" data-title="{{ doc.title }}" role="tabpanel"
+<article class="card doc" id="doc-{{ doc.id }}" data-title="{{ doc.title }}"
+         {% if documents | length > 1 %}role="tabpanel" aria-labelledby="tab-{{ doc.id }}"{% endif %}
          {% if not loop.first %}hidden{% endif %}>
     {{ doc.html }}
 </article>
 <textarea id="md-{{ doc.id }}" hidden>{{ doc.markdown }}</textarea>
 {% endfor %}
+
+<p class="notice no-print">AI can make mistakes - check every detail before you send it.</p>
 {% endblock %}
 
 {% block scripts %}
 <script>
+(function () {
     var fullName = {{ full_name | tojson }};
     var active = document.querySelector(".doc:not([hidden])");
     var copyBtn = document.getElementById("copy-btn");
+    var tabs = Array.prototype.slice.call(document.querySelectorAll(".tab"));
 
-    document.querySelectorAll(".tab").forEach(function (tab) {
-        tab.addEventListener("click", function () {
-            document.querySelectorAll(".tab").forEach(function (t) {
-                t.setAttribute("aria-selected", String(t === tab));
-            });
-            document.querySelectorAll(".doc").forEach(function (d) { d.hidden = true; });
-            active = document.getElementById("doc-" + tab.dataset.doc);
-            active.hidden = false;
+    function select(tab) {
+        tabs.forEach(function (t) {
+            var on = t === tab;
+            t.setAttribute("aria-selected", String(on));
+            t.tabIndex = on ? 0 : -1;
+            document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+        });
+        active = document.getElementById(tab.getAttribute("aria-controls"));
+    }
+    tabs.forEach(function (tab, i) {
+        tab.addEventListener("click", function () { select(tab); });
+        tab.addEventListener("keydown", function (e) {
+            if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+            var next = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+            select(next);
+            next.focus();
         });
     });
 
@@ -79,12 +115,44 @@
         document.title = original;
     });
 
+    function flash(text) {
+        copyBtn.textContent = text;
+        setTimeout(function () { copyBtn.textContent = "Copy as Markdown"; }, 2000);
+    }
+    function legacyCopy(text) {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        var ok = false;
+        try { ok = document.execCommand("copy"); } catch (e) {}
+        document.body.removeChild(ta);
+        flash(ok ? "Copied!" : "Copy failed");
+    }
     copyBtn.addEventListener("click", function () {
         var text = document.getElementById("md-" + active.id.slice(4)).value;
-        navigator.clipboard.writeText(text).then(function () {
-            copyBtn.textContent = "Copied!";
-            setTimeout(function () { copyBtn.textContent = "Copy as Markdown"; }, 2000);
-        });
+        // The Clipboard API only exists on HTTPS and localhost.
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(function () { flash("Copied!"); },
+                                                     function () { legacyCopy(text); });
+        } else {
+            legacyCopy(text);
+        }
     });
+
+    var regen = document.getElementById("regen-btn");
+    document.getElementById("details").addEventListener("submit", function (e) {
+        if (e.submitter === regen) {
+            regen.disabled = true;
+            regen.textContent = "Writing...";
+        }
+    });
+    window.addEventListener("pageshow", function () {
+        regen.disabled = false;
+        regen.textContent = "Try another version";
+    });
+})();
 </script>
 {% endblock %}

@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}ForgeMyCV - Build a polished CV and cover letter in minutes{% endblock %}
+{% block main_class %}wide landing{% endblock %}
+
+{% block styles %}
+.landing { padding-top: 0; padding-bottom: 0; }
+.landing section { padding: 72px 0; }
+.landing section + section { border-top: 1px solid var(--border); }
+.eyebrow { display: inline-block; font-size: .8rem; font-weight: 700; letter-spacing: .08em;
+           text-transform: uppercase; color: var(--accent); background: var(--accent-soft);
+           padding: 4px 10px; border-radius: 999px; margin-bottom: 16px; }
+.section-head { max-width: 640px; margin: 0 auto 40px; text-align: center; }
+.section-head h2 { font-size: clamp(1.6rem, 3vw, 2.1rem); line-height: 1.2; margin: 0 0 12px; }
+.section-head p { color: var(--muted); margin: 0; font-size: 1.05rem; }
+
+/* Hero */
+.hero { display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px; align-items: center; }
+.hero h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); line-height: 1.08; letter-spacing: -.02em; margin: 0 0 20px; }
+.hero h1 em { font-style: normal; color: var(--accent);
+              background: linear-gradient(transparent 62%, rgba(245, 158, 11, .35) 62%); }
+.hero .lead { font-size: 1.15rem; color: var(--muted); margin: 0 0 28px; max-width: 520px; }
+.hero .actions { margin-bottom: 20px; }
+.checks { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px 20px;
+          color: var(--muted); font-size: .95rem; }
+.checks li::before { content: "\2713"; color: #1a7f37; font-weight: 700; margin-right: 6px; }
+
+/* Hero illustration: a CV with a cover letter tucked behind it */
+.preview { position: relative; height: 440px; }
+.sheet { position: absolute; background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+         box-shadow: var(--shadow); font-family: Georgia, "Times New Roman", serif; }
+.sheet.letter { width: 68%; height: 82%; right: 0; top: 0; transform: rotate(4deg); padding: 24px;
+                background: #fdfdfb; }
+.sheet.cv { width: 76%; height: 92%; left: 0; bottom: 0; transform: rotate(-2deg); padding: 28px; }
+.sheet .name { font-size: 1.35rem; font-weight: 700; color: var(--accent); margin: 0; }
+.sheet .contact { font-size: .72rem; color: var(--muted); margin: 2px 0 14px; }
+.sheet .h { font-family: system-ui, sans-serif; font-size: .62rem; font-weight: 700; letter-spacing: .08em;
+            text-transform: uppercase; color: var(--accent); border-bottom: 1.5px solid var(--accent);
+            padding-bottom: 2px; margin: 14px 0 8px; }
+.line { height: 7px; border-radius: 4px; background: #e6eaef; margin: 6px 0; }
+.line.short { width: 55%; } .line.mid { width: 78%; }
+.pills { display: flex; flex-wrap: wrap; gap: 5px; }
+.pills span { font-family: system-ui, sans-serif; font-size: .62rem; padding: 2px 8px; border-radius: 999px;
+              background: var(--accent-soft); color: var(--accent); }
+.badge { position: absolute; right: 8px; bottom: 28px; z-index: 2; background: var(--surface);
+         border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px 6px 8px; box-shadow: var(--shadow);
+         font-size: .85rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.badge i { width: 22px; height: 22px; border-radius: 50%; background: var(--spark); display: grid; place-items: center;
+           color: #fff; font-style: normal; font-size: .8rem; }
+
+/* Steps */
+.steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+         counter-reset: step; }
+.steps li { counter-increment: step; }
+.steps li::before { content: counter(step); display: grid; place-items: center; width: 36px; height: 36px;
+                    border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; margin-bottom: 14px; }
+.steps h3, .feature h3 { margin: 0 0 6px; font-size: 1.1rem; }
+.steps p, .feature p { margin: 0; color: var(--muted); }
+
+/* Features */
+.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.feature .icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accent-soft); color: var(--accent);
+                 display: grid; place-items: center; margin-bottom: 14px; }
+
+/* FAQ */
+.faq { max-width: 760px; margin: 0 auto; }
+.faq details { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+               margin-bottom: 10px; }
+.faq summary { cursor: pointer; padding: 16px 20px; font-weight: 600; list-style: none; display: flex;
+               justify-content: space-between; gap: 16px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; color: var(--accent); font-size: 1.3rem; line-height: 1; }
+.faq details[open] summary::after { content: "\2212"; }
+.faq details p { margin: 0; padding: 0 20px 18px; color: var(--muted); }
+
+/* Final call to action */
+.cta { background: var(--accent); color: #fff; border-radius: 16px; padding: 56px 24px; text-align: center; }
+.cta h2 { margin: 0 0 10px; font-size: clamp(1.6rem, 3vw, 2.1rem); }
+.cta p { margin: 0 0 28px; opacity: .85; font-size: 1.05rem; }
+.cta .btn { background: #fff; color: var(--accent); border-color: #fff; }
+.cta .btn:hover { background: var(--accent-soft); }
+.landing section.cta-wrap { border-top: 0; padding-top: 0; }
+
+@media (max-width: 880px) {
+    .hero { grid-template-columns: 1fr; gap: 40px; }
+    .preview { height: 380px; max-width: 460px; width: 100%; margin: 0 auto; }
+    .steps, .features { grid-template-columns: 1fr; }
+    .landing section { padding: 48px 0; }
+}
+@media (min-width: 600px) and (max-width: 880px) {
+    .features { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 420px) {
+    .preview { height: 330px; }
+    .sheet.cv { padding: 20px; }
+}
+{% endblock %}
+
+{% block content %}
+<section class="hero" aria-labelledby="hero-title">
+    <div>
+        <span class="eyebrow">AI CV &amp; cover letter builder</span>
+        <h1 id="hero-title">Forge a CV that gets you <em>the interview</em>.</h1>
+        <p class="lead">Tell us about your experience and the job you want. ForgeMyCV writes a clean,
+            ATS-friendly CV and a matching cover letter, tailored to the advert, in under a minute.</p>
+        <div class="actions">
+            <a class="btn large" href="{{ url_for('form') }}">Build my CV</a>
+            <a class="btn large secondary" href="#how-it-works">See how it works</a>
+        </div>
+        <ul class="checks">
+            <li>No sign-up</li>
+            <li>Nothing stored</li>
+            <li>Download as PDF</li>
+        </ul>
+    </div>
+
+    <div class="preview" aria-hidden="true">
+        <div class="sheet letter">
+            <div class="line short"></div>
+            <div class="line mid" style="margin-bottom: 18px"></div>
+            <div class="line"></div><div class="line"></div><div class="line mid"></div>
+            <div class="line" style="margin-top: 14px"></div><div class="line"></div><div class="line short"></div>
+        </div>
+        <div class="sheet cv">
+            <p class="name">Alex Morgan</p>
+            <p class="contact">alex@example.com | London, UK | linkedin.com/in/alexmorgan</p>
+            <div class="h">Professional summary</div>
+            <div class="line"></div><div class="line mid"></div>
+            <div class="h">Skills</div>
+            <div class="pills"><span>Product strategy</span><span>SQL</span><span>User research</span><span>Figma</span></div>
+            <div class="h">Work experience</div>
+            <div class="line short"></div><div class="line"></div><div class="line mid"></div>
+            <div class="line short" style="margin-top: 12px"></div><div class="line"></div>
+        </div>
+        <div class="badge"><i>&#10003;</i>Tailored to the job advert</div>
+    </div>
+</section>
+
+<section id="how-it-works" aria-labelledby="how-title">
+    <div class="section-head">
+        <h2 id="how-title">Three steps to a finished application</h2>
+        <p>No templates to wrestle with and no formatting to fix.</p>
+    </div>
+    <ol class="steps">
+        <li class="card">
+            <h3>Add your details</h3>
+            <p>Your roles, achievements, education and skills. Rough notes are fine - we'll do the polishing.</p>
+        </li>
+        <li class="card">
+            <h3>Paste the job advert</h3>
+            <p>Optional, but powerful: we'll put your most relevant experience front and centre.</p>
+        </li>
+        <li class="card">
+            <h3>Download and apply</h3>
+            <p>Review your CV and cover letter, then save them as PDFs or copy them into your editor.</p>
+        </li>
+    </ol>
+</section>
+
+<section aria-labelledby="features-title">
+    <div class="section-head">
+        <h2 id="features-title">Everything you need, nothing you don't</h2>
+        <p>Built for one job: getting your application ready to send.</p>
+    </div>
+    <div class="features">
+        <div class="card feature">
+            <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></div>
+            <h3>Tailored to every role</h3>
+            <p>Paste a job description and your CV leads with what that employer is looking for.</p>
+        </div>
+        <div class="card feature">
+            <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+            <h3>ATS-friendly layout</h3>
+            <p>Clear headings and a simple structure that applicant tracking systems can read.</p>
+        </div>
+        <div class="card feature">
+            <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg></div>
+            <h3>No made-up facts</h3>
+            <p>We only use what you tell us - no invented employers, dates, degrees or numbers.</p>
+        </div>
+        <div class="card feature">
+            <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></div>
+            <h3>Matching cover letter</h3>
+            <p>Tick one box to get a personal, one-page letter written for the same role.</p>
+        </div>
+        <div class="card feature">
+            <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></div>
+            <h3>PDF or Markdown</h3>
+            <p>Save print-ready PDFs, or copy the text to keep editing in Word or Google Docs.</p>
+        </div>
+        <div class="card feature">
+            <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+            <h3>Private by design</h3>
+            <p>No account, no database. Your details are used to write your documents and then discarded.</p>
+        </div>
+    </div>
+</section>
+
+<section aria-labelledby="faq-title">
+    <div class="section-head">
+        <h2 id="faq-title">Questions, answered</h2>
+    </div>
+    <div class="faq">
+        <details>
+            <summary>Do I need an account?</summary>
+            <p>No. Open the builder, fill in your details and generate. There's nothing to sign up for.</p>
+        </details>
+        <details>
+            <summary>What happens to my information?</summary>
+            <p>Your details are sent to OpenAI to write your documents and are not stored by ForgeMyCV.
+               A draft of the form is saved in your own browser so you don't lose your work - use
+               "Clear form" in the builder to remove it.</p>
+        </details>
+        <details>
+            <summary>Will it make things up to impress employers?</summary>
+            <p>No. It's instructed to use only the facts you provide. AI can still make mistakes, so always
+               read your documents through before sending them.</p>
+        </details>
+        <details>
+            <summary>Can I edit the result?</summary>
+            <p>Yes. Go back to your details and generate again, ask for another version, or copy the text
+               as Markdown and finish it in any editor.</p>
+        </details>
+        <details>
+            <summary>How do I get a PDF?</summary>
+            <p>Click "Download PDF" and choose "Save as PDF" in your browser's print dialog. The page is
+               formatted so only your document is printed.</p>
+        </details>
+    </div>
+</section>
+
+<section class="cta-wrap">
+    <div class="cta">
+        <h2>Your next application starts here</h2>
+        <p>It takes about five minutes to fill in. Your CV is ready a minute later.</p>
+        <a class="btn large" href="{{ url_for('form') }}">Build my CV now</a>
+    </div>
+</section>
+{% endblock %}

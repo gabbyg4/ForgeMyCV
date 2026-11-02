@@ -1,35 +1,63 @@
 {% extends "base.html" %}
-{% block title %}ForgeMyCV - Build your CV{% endblock %}
+{% block title %}Build your CV - ForgeMyCV{% endblock %}
+{% block nav_action %}{% endblock %}
 
-{% macro field(name, label, required=false, type="text", hint="", rows=0, cls="") -%}
+{% block styles %}
+.form-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.link-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--muted);
+            text-decoration: underline; cursor: pointer; }
+.draft-note { font-size: .875rem; color: var(--muted); margin: 0 0 16px; }
+.alert a { color: inherit; }
+{% endblock %}
+
+{% macro field(name, label, required=false, type="text", hint="", rows=0, cls="", autocomplete="") -%}
+{%- set error = errors.get(name) -%}
 <div class="{{ cls }}">
-    <label for="{{ name }}">{{ label }}{% if required %} <span class="req">*</span>{% endif %}
+    <label for="{{ name }}">{{ label }}{% if required %} <span class="req" aria-hidden="true">*</span>{% endif %}
         {% if hint %}<span class="hint">{{ hint }}</span>{% endif %}</label>
     {% if rows %}
     <textarea id="{{ name }}" name="{{ name }}" rows="{{ rows }}" maxlength="{{ limits[name] }}"
-              {% if required %}required{% endif %}>{{ data.get(name, "") }}</textarea>
+              {% if required %}required{% endif %}
+              {% if error %}aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}
+              >{{ data.get(name, "") }}</textarea>
     {% else %}
     <input id="{{ name }}" name="{{ name }}" type="{{ type }}" maxlength="{{ limits[name] }}"
-           value="{{ data.get(name, '') }}" {% if required %}required{% endif %}>
+           value="{{ data.get(name, '') }}" {% if required %}required{% endif %}
+           {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %}
+           {% if error %}aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}>
     {% endif %}
+    {% if error %}<p class="field-error" id="{{ name }}-error">{{ error }}</p>{% endif %}
 </div>
 {%- endmacro %}
 
 {% block content %}
-{% if errors %}
-<div class="errors" role="alert">
-    <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+<div class="page-head">
+    <h1>Build your CV</h1>
+    <p>Fill in what you have - only fields marked <span class="req">*</span> are required.
+       We'll never invent details you didn't give us.</p>
+</div>
+
+{% if message %}
+<div class="alert" role="alert" id="form-alert" tabindex="-1">
+    <strong>{{ message }}</strong>
+    {% if errors %}
+    <ul>{% for name, error in errors.items() %}<li><a href="#{{ name }}">{{ error }}</a></li>{% endfor %}</ul>
+    {% endif %}
 </div>
 {% endif %}
 
-<form class="card" action="{{ url_for('generate') }}" method="post" id="cv-form">
+<form class="card" action="{{ url_for('generate') }}" method="post" id="cv-form" novalidate>
+    <p class="draft-note" id="draft-note" hidden>
+        We restored the draft saved in this browser.
+    </p>
+
     <fieldset>
         <legend>Personal details</legend>
         <div class="grid">
-            {{ field("full_name", "Full name", true) }}
-            {{ field("target_role", "Target job title", true) }}
-            {{ field("email", "Email", type="email") }}
-            {{ field("phone", "Phone", type="tel") }}
+            {{ field("full_name", "Full name", true, autocomplete="name") }}
+            {{ field("target_role", "Target job title", true, hint="(e.g. Product Designer)") }}
+            {{ field("email", "Email", type="email", autocomplete="email") }}
+            {{ field("phone", "Phone", type="tel", autocomplete="tel") }}
             {{ field("location", "Location", hint="(e.g. London, UK)") }}
             {{ field("links", "Links", hint="(LinkedIn, portfolio, GitHub)") }}
         </div>
@@ -62,37 +90,114 @@
             Also write a matching cover letter
         </label>
         <div class="grid" id="letter-fields">
-            {{ field("company", "Company name", hint="(required for a cover letter)") }}
+            {{ field("company", "Company name", hint="(required for a cover letter)", autocomplete="organization") }}
             {{ field("hiring_manager", "Hiring manager", hint="(if known)") }}
             {{ field("motivation", "Why you want this role", hint="(optional - makes the letter more personal)",
                      rows=3, cls="full") }}
         </div>
     </fieldset>
 
-    <button class="btn" type="submit" id="submit-btn">Generate CV</button>
+    <div class="form-foot">
+        <button class="btn large" type="submit" id="submit-btn">Generate CV</button>
+        <button class="link-btn" type="button" id="clear-btn">Clear form</button>
+    </div>
 </form>
 {% endblock %}
 
 {% block scripts %}
 <script>
+(function () {
     var form = document.getElementById("cv-form");
     var btn = document.getElementById("submit-btn");
     var letterBox = document.getElementById("cover_letter");
     var letterFields = document.getElementById("letter-fields");
     var company = document.getElementById("company");
+    var DRAFT_KEY = "forgemycv-draft";
+    var hasServerData = {{ (data.values() | select | list | length > 0) | tojson }};
+
+    function idleLabel() {
+        return letterBox.checked ? "Generate CV & cover letter" : "Generate CV";
+    }
 
     function syncLetter() {
-        var on = letterBox.checked;
-        letterFields.hidden = !on;
-        company.required = on;
-        btn.textContent = on ? "Generate CV & cover letter" : "Generate CV";
+        letterFields.hidden = !letterBox.checked;
+        company.required = letterBox.checked;
+        btn.textContent = idleLabel();
     }
-    letterBox.addEventListener("change", syncLetter);
-    syncLetter();
 
-    form.addEventListener("submit", function () {
-        btn.disabled = true;
-        btn.textContent = letterBox.checked ? "Writing your CV & cover letter..." : "Generating your CV...";
+    // Browser storage can be unavailable (private mode, blocked cookies) - never let that break the form.
+    function readDraft() {
+        try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch (e) { return null; }
+    }
+    function saveDraft() {
+        var draft = {};
+        Array.prototype.forEach.call(form.elements, function (el) {
+            if (!el.name) return;
+            draft[el.name] = el.type === "checkbox" ? el.checked : el.value;
+        });
+        try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) {}
+    }
+    function restoreDraft() {
+        var draft = readDraft();
+        if (!draft || hasServerData) return;
+        var restored = false;
+        Object.keys(draft).forEach(function (name) {
+            var el = form.elements[name];
+            if (!el || el.length) return;
+            if (el.type === "checkbox") { el.checked = !!draft[name]; }
+            else if (draft[name]) { el.value = draft[name]; restored = true; }
+        });
+        if (restored) document.getElementById("draft-note").hidden = false;
+    }
+
+    var saveTimer;
+    form.addEventListener("input", function (e) {
+        e.target.removeAttribute("aria-invalid");
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(saveDraft, 400);
     });
+    letterBox.addEventListener("change", function () { syncLetter(); saveDraft(); });
+
+    document.getElementById("clear-btn").addEventListener("click", function () {
+        if (!confirm("Clear every field and the saved draft?")) return;
+        try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+        Array.prototype.forEach.call(form.elements, function (el) {
+            if (el.type === "checkbox") el.checked = false;
+            else if (el.name) el.value = "";
+            el.removeAttribute("aria-invalid");
+        });
+        document.querySelectorAll(".field-error, #form-alert, #draft-note").forEach(function (n) { n.hidden = true; });
+        syncLetter();
+        document.getElementById("full_name").focus();
+    });
+
+    form.addEventListener("submit", function (e) {
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            form.reportValidity();
+            return;
+        }
+        saveDraft();
+        btn.disabled = true;
+        btn.textContent = letterBox.checked ? "Writing your CV & cover letter..." : "Writing your CV...";
+    });
+
+    // Coming back with the Back button can restore a page whose button is still disabled.
+    window.addEventListener("pageshow", function () {
+        btn.disabled = false;
+        btn.textContent = idleLabel();
+    });
+
+    // Pages served in reply to a POST (errors, "Edit details") would ask to resubmit on Back/refresh.
+    // Pointing this history entry at the plain builder URL avoids that; the draft keeps the input.
+    if (location.pathname !== {{ url_for("form") | tojson }} && history.replaceState) {
+        history.replaceState(null, "", {{ url_for("form") | tojson }});
+    }
+
+    restoreDraft();
+    syncLetter();
+    var alertBox = document.getElementById("form-alert");
+    if (alertBox) alertBox.focus();
+})();
 </script>
 {% endblock %}

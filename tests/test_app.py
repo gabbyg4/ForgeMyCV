@@ -18,6 +18,7 @@ VALID = {
 def client(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     cv_app.app.config["TESTING"] = True
+    cv_app.limiter.reset()
     return cv_app.app.test_client()
 
 
@@ -34,8 +35,16 @@ def fake_openai(content=None, error=None, calls=None):
     return lambda: SimpleNamespace(chat=SimpleNamespace(completions=completions))
 
 
-def test_form_renders(client):
+def test_landing_page(client):
     resp = client.get("/")
+    assert resp.status_code == 200
+    assert b"Build my CV" in resp.data
+    assert b'href="/build"' in resp.data
+    assert resp.headers["X-Frame-Options"] == "DENY"
+
+
+def test_form_renders(client):
+    resp = client.get("/build")
     assert resp.status_code == 200
     assert b'name="full_name"' in resp.data
     assert b'name="cover_letter"' in resp.data
@@ -126,3 +135,77 @@ def test_generates_cv_and_cover_letter(client, monkeypatch):
     letter_prompt = prompts[cv_app.COVER_LETTER_PROMPT]
     assert "Analytical Engines Ltd" in letter_prompt and "I love engines." in letter_prompt
     assert "Analytical Engines Ltd" not in cv_prompt and "I love engines." not in cv_prompt
+
+
+def test_crlf_line_breaks_count_once(client, monkeypatch):
+    monkeypatch.setattr(cv_app, "get_client", fake_openai("# CV"))
+    skills = "a\r\n" * 333 + "a"  # 1000 characters once CRLF becomes LF
+    resp = client.post("/generate", data={**VALID, "skills": skills})
+    assert resp.status_code == 200
+
+
+def test_invalid_email_rejected(client):
+    resp = client.post("/generate", data={**VALID, "email": "not-an-email"})
+    assert resp.status_code == 400
+    assert b"Enter a valid email address." in resp.data
+    assert b'aria-invalid="true"' in resp.data
+
+
+def test_get_generate_redirects_to_form(client):
+    resp = client.get("/generate")
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/build")
+
+
+def test_edit_prefills_form(client):
+    resp = client.post("/edit", data={**VALID, "cover_letter": "on", "company": "Acme"})
+    assert resp.status_code == 200
+    assert b'value="Acme"' in resp.data
+    assert b'id="cover_letter" checked' in resp.data
+    assert b"is required" not in resp.data  # editing never shows validation errors
+
+
+def test_result_page_carries_details_for_edit_and_regenerate(client, monkeypatch):
+    monkeypatch.setattr(cv_app, "get_client", fake_openai("# CV"))
+    resp = client.post("/generate", data={**VALID, "experience": "Line one\nLine two"})
+    assert b'formaction="/edit"' in resp.data
+    assert b'name="experience" value="Line one\nLine two"' in resp.data
+
+
+def test_empty_response_is_handled(client, monkeypatch):
+    monkeypatch.setattr(cv_app, "get_client", fake_openai("   "))
+    resp = client.post("/generate", data=VALID)
+    assert resp.status_code == 502
+    assert b"came back empty" in resp.data
+
+
+def test_invalid_api_key_is_reported(client, monkeypatch):
+    # Built without __init__ so the test doesn't depend on the SDK's HTTP library.
+    err = cv_app.AuthenticationError.__new__(cv_app.AuthenticationError)
+    monkeypatch.setattr(cv_app, "get_client", fake_openai(error=err))
+    resp = client.post("/generate", data=VALID)
+    assert resp.status_code == 500
+    assert b"API key is invalid" in resp.data
+
+
+def test_rate_limit(client, monkeypatch):
+    monkeypatch.setattr(cv_app, "RATE_LIMIT", "2 per hour")
+    monkeypatch.setattr(cv_app, "get_client", fake_openai("# CV"))
+    assert client.post("/generate", data=VALID).status_code == 200
+    assert client.post("/generate", data=VALID).status_code == 200
+    resp = client.post("/generate", data=VALID)
+    assert resp.status_code == 429
+    assert b"Please wait" in resp.data
+    assert b'value="Ada Lovelace"' in resp.data
+
+
+def test_oversized_request(client):
+    resp = client.post("/generate", data={"experience": "x" * 300_000})
+    assert resp.status_code == 413
+    assert b"too much text" in resp.data
+
+
+def test_404_page(client):
+    resp = client.get("/nope")
+    assert resp.status_code == 404
+    assert b"Page not found" in resp.data
